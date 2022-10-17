@@ -7,20 +7,12 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.EventHandler;
-import javafx.event.EventType;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
-import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
-import javafx.util.Callback;
-import javafx.util.StringConverter;
+import javafx.util.Callback;;
 import javafx.util.converter.DefaultStringConverter;
 import lombok.AllArgsConstructor;
 
@@ -70,7 +62,23 @@ public class TodoListPluginView implements PluginView{
         javafx.scene.control.TableColumn<TableVO, Boolean> status = new javafx.scene.control.TableColumn<>("status");
         //双向绑定数据实体和UI展示
         status.setCellValueFactory(param -> param.getValue().statusProperty());
-        status.setCellFactory(CheckBoxTableCell.forTableColumn(status));
+        status.setCellFactory(new Callback<TableColumn<TableVO, Boolean>, TableCell<TableVO, Boolean>>() {
+            @Override
+            public TableCell<TableVO, Boolean> call(TableColumn<TableVO, Boolean> param) {
+                return new CheckBoxTableCell<TableVO,Boolean>(){
+                    @Override
+                    public void updateItem(Boolean item, boolean empty) {
+                        super.updateItem(item, empty);
+                    }
+
+                    @Override
+                    public void commitEdit(Boolean newValue) {
+                        super.commitEdit(newValue);
+                        this.getTableView().sort();
+                    }
+                };
+            }
+        });
         status.setMaxWidth(80);
         status.setMinWidth(80);
 
@@ -79,13 +87,22 @@ public class TodoListPluginView implements PluginView{
         item.setCellFactory(new Callback<TableColumn<TableVO, String>, TableCell<TableVO, String>>() {
             @Override
             public TableCell<TableVO, String> call(TableColumn<TableVO, String> param) {
-                Label label = new Label();
-                return label;
+                return new TextFieldTableCell<TableVO, String>(new DefaultStringConverter()){
+                    @Override
+                    public void updateItem(String item, boolean empty) {
+                        if (empty) {
+                            super.updateItem("",empty);
+                        }else{
+                            super.updateItem(item,empty);
+                        }
+                    }
+                };
             }
         });
 
-        final TableVO tableVO = new TableVO("true", "haha");
-        final TableVO tableVO2 = new TableVO("false", "haha2");
+
+        final TableVO tableVO = new TableVO("false", "haha");
+        final TableVO tableVO2 = new TableVO("true", "haha2");
 
         //返回需要观测监听的属性
         ObservableList<TableVO> datProperties = FXCollections.observableArrayList(param -> new Observable[]{param.statusProperty(),param.itemProperty()});
@@ -100,6 +117,8 @@ public class TodoListPluginView implements PluginView{
 
         tableView.setEditable(true);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        tableView.getSortOrder().add(status);
 
         BorderPane pane = new BorderPane();
         pane.setCenter(tableView);
